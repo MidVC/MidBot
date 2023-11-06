@@ -5,6 +5,8 @@ from .responses import handle_response
 async def send_message(message, user_message, is_private):
     try:
         response = handle_response(user_message)
+        if response == '':
+            return
         if is_private:
             await message.author.send(response)
         else:

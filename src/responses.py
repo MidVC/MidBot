@@ -3,3 +3,5 @@ def handle_response(message) -> str:
 
     if lc_message == '>rs':
         return 'deranker!'
+
+    return ''
