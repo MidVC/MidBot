@@ -2,9 +2,9 @@ import discord
 from .responses import handle_response
 
 
-async def send_message(message, user_message, is_private):
+async def send_message(message, is_private):
     try:
-        response = handle_response(user_message)
+        response = handle_response(message)
         if response == '':
             return
         if is_private:
@@ -36,6 +36,6 @@ def run_discord_bot(token, apiKey):
 
         print(f'{username} said {user_message} in {channel}')
 
-        await send_message(message, user_message, is_private=False)
+        await send_message(message, is_private=False)
 
     client.run(token)
