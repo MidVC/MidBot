@@ -13,7 +13,7 @@ def handle_response(message, clientId, clientSecret) -> str:
         else:
             return handle_roll(int(words[1]))
     elif words[0] == '>rs':
-        print(message.author)
-        return handle_rs(str(message.author), clientId, clientSecret) + " " + handle_deranker_rs(str(message.author))
+        if len(words) > 1:
+            return handle_rs(words[1], clientId, clientSecret) + "\n" + handle_deranker_rs(message.author.id)
 
     return ''
