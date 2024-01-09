@@ -2,12 +2,12 @@ import discord
 from .responses import handle_response
 
 
-async def send_message(message, is_private):
+async def send_message(message, clientId, clientSecret, isPrivate=False):
     try:
-        response = handle_response(message)
+        response = handle_response(message, clientId, clientSecret)
         if response == '':
             return
-        if is_private:
+        if isPrivate:
             await message.author.send(response)
         else:
             await message.channel.send(response)
@@ -16,7 +16,7 @@ async def send_message(message, is_private):
         print(e)
 
 
-def run_discord_bot(token, apiKey):
+def run_discord_bot(token, apiKey, clientId, clientSecret):
     intent = discord.Intents.default()
     intent.message_content = True
     client = discord.Client(intents=intent)
@@ -36,6 +36,6 @@ def run_discord_bot(token, apiKey):
 
         print(f'{username} said {user_message} in {channel}')
 
-        await send_message(message, is_private=False)
+        await send_message(message, clientId, clientSecret)
 
     client.run(token)
