@@ -16,10 +16,11 @@ async def send_message(message, clientId, clientSecret, isPrivate=False):
         print(e)
 
 
+intent = discord.Intents.default()
+intent.message_content = True
+client = discord.Client(intents=intent)
+
 def run_discord_bot(token, apiKey, clientId, clientSecret):
-    intent = discord.Intents.default()
-    intent.message_content = True
-    client = discord.Client(intents=intent)
 
     @client.event
     async def on_ready():
@@ -37,5 +38,8 @@ def run_discord_bot(token, apiKey, clientId, clientSecret):
         print(f'{username} said {user_message} in {channel}')
 
         await send_message(message, clientId, clientSecret)
-
+    
     client.run(token)
+
+async def stopDiscordBot():
+    await client.close()
