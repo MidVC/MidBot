@@ -1,1 +1,1 @@
-from . import DiscordToOsuID
+from . import MySQLConnection
