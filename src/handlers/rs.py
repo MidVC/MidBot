@@ -19,5 +19,5 @@ def handle_rs(user_name: str, clientId, clientSecret) -> str :
             scoreList[0].beatmapset.title + " +" + \
             str(scoreList[0].mods) + ", " + \
             "{:.2f}".format(scoreList[0].accuracy * 100) + "%, " + \
-            str(scoreList[0].max_com) + "x"
+            str(scoreList[0].max_combo) + "x"
            
