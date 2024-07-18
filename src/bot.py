@@ -1,10 +1,15 @@
 import discord
 from .responses import handle_response
+from datetime import datetime, time
+from .tasklist import startAllTasks
+from asyncio import sleep
+from sys import stderr
+from discord.ext import tasks
 
 
-async def send_message(message, clientId, clientSecret, isPrivate=False):
+async def send_message(client: discord.Client, message, clientId, clientSecret, isPrivate=False):
     try:
-        response = handle_response(message, clientId, clientSecret)
+        response = handle_response(client, message, clientId, clientSecret)
         if response == '':
             return
         if isPrivate:
@@ -13,7 +18,7 @@ async def send_message(message, clientId, clientSecret, isPrivate=False):
             await message.channel.send(response)
 
     except Exception as e:
-        print(e)
+        print(e, file=stderr)
 
 
 intent = discord.Intents.default()
@@ -24,6 +29,7 @@ def run_discord_bot(token, apiKey, clientId, clientSecret):
 
     @client.event
     async def on_ready():
+        startAllTasks(client)
         print(f'{client.user} is now running!')
 
     @client.event
@@ -37,9 +43,6 @@ def run_discord_bot(token, apiKey, clientId, clientSecret):
 
         print(f'{username} said {user_message} in {channel}')
 
-        await send_message(message, clientId, clientSecret)
+        await send_message(client, message, clientId, clientSecret)
     
     client.run(token)
-
-async def stopDiscordBot():
-    await client.close()

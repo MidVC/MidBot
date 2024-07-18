@@ -2,8 +2,9 @@ from .handlers.roll import handle_roll
 from .handlers.rs import handle_rs
 from .handlers.derankerrs import handle_deranker_rs
 from .handlers.ciallo import handleCiallo
+from discord import Client
 
-def handle_response(message, clientId, clientSecret) -> str:
+def handle_response(client: Client, message, clientId, clientSecret) -> str:
     lc_message = message.content.lower()
 
     words = lc_message.split(' ')
