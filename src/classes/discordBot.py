@@ -1,12 +1,12 @@
 from sys import stderr
 
 from discord.ext.commands import Bot
-from discord import Message, Intents
+from discord import Message, Intents, app_commands
 
 from ..tasklist import startAllTasks
 from ..responses import handle_response
 
-class discordBot(Bot):
+class DiscordBot(Bot):
     def __init__(self, token: str, description: str = "", prefix: str = '!'):
         self.__token = token
         self.description = description
@@ -19,10 +19,12 @@ class discordBot(Bot):
         super().run(token=self.__token)
 
     async def on_ready(self):
+        synced = await self.tree.sync()
         startAllTasks(self)
-        print("Logged in as ", self.user)
+        print("Logged in as ", self.user, '\n', 'synced', len(synced), 'command(s)')
 
     async def on_message(self, message:Message):
+        await self.process_commands(message)
         if message.author == self.user:
             return
 
@@ -30,8 +32,8 @@ class discordBot(Bot):
         user_message = message.content
         channel = message.channel
         print(f'{username} said {user_message} in {channel}')
-
         await self._send_message(message)
+        
     
     async def _send_message(self, message:Message):
         try:
