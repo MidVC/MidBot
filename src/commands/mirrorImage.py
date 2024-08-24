@@ -49,7 +49,7 @@ def __mirror(image: Image.Image, name: str, dir: FlipDir) -> File:
     return File(new_image_bytes, filename=name)
 
 @bot.tree.command(description='Attach a jpeg or png file to mirror it')
-async def mirror_image(interaction: Interaction, image: Attachment, respective: FlipDir):
+async def mirror_image(interaction: Interaction, image: Attachment, respective: FlipDir = FlipDir.LEFT):
     await interaction.response.defer(thinking=True)
 
     if image.content_type not in ["image/jpeg", "image/png"]:
