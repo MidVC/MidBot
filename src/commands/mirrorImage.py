@@ -2,17 +2,44 @@ from discord import Interaction, Attachment, File
 from discord.ext.commands import Context
 from ..bot import bot
 import io
+from enum import Enum
 from PIL import Image
 # import requests
 
-def __mirror(image: Image.Image, name: str) -> File:
-    width, height = image.size
+class FlipDir(Enum):
+    LEFT = 'left'
+    RIGHT = 'right'
+    TOP = 'top'
+    BOTTOM = 'bottom'
 
-    left_half = image.crop((0, 0, width//2, height))
-    mirrored_left_half = left_half.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-    new_image = Image.new('RGB', (width-1, height))
-    new_image.paste(left_half, (0, 0))
-    new_image.paste(mirrored_left_half, (width//2, 0))
+
+def __mirror(image: Image.Image, name: str, dir: FlipDir) -> File:
+    width, height = image.size
+    new_image = Image.new('RGB', (width-1, height-1))
+
+    if dir == FlipDir.LEFT:
+        half = image.crop((0, 0, width//2, height))
+        mirrored_half = half.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        new_image.paste(half, (0, 0))
+        new_image.paste(mirrored_half, (width//2, 0))
+
+    elif dir == FlipDir.RIGHT:
+        half = image.crop((width//2, 0, width, height))
+        mirrored_half = half.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        new_image.paste(mirrored_half, (0, 0))
+        new_image.paste(half, (width//2, 0))
+
+    elif dir == FlipDir.TOP:
+        half = image.crop((0, 0, width, height//2))
+        mirrored_half = half.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        new_image.paste(half, (0, 0))
+        new_image.paste(mirrored_half, (0, height//2))
+    
+    elif dir == FlipDir.BOTTOM:
+        half = image.crop((0, height//2, width, height))
+        mirrored_half = half.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        new_image.paste(mirrored_half, (0, 0))
+        new_image.paste(half, (0, height//2))
 
     new_image_bytes = io.BytesIO()
     new_image.save(new_image_bytes, format=image.format)
@@ -22,7 +49,7 @@ def __mirror(image: Image.Image, name: str) -> File:
     return File(new_image_bytes, filename=name)
 
 @bot.tree.command(description='Attach a jpeg or png file to mirror it')
-async def mirror_image(interaction: Interaction, image: Attachment):
+async def mirror_image(interaction: Interaction, image: Attachment, respective: FlipDir):
     await interaction.response.defer(thinking=True)
 
     if image.content_type not in ["image/jpeg", "image/png"]:
@@ -37,7 +64,7 @@ async def mirror_image(interaction: Interaction, image: Attachment):
         # file = File(img_bytes, filename='image.jpg')
         # await interaction.edit_original_response(content='dummy image', attachments=[file])
         formatted_image = Image.open(img_bytes)
-        await interaction.edit_original_response(content='Mirrored respective to the left half!', attachments=[__mirror(formatted_image, image.filename)])
+        await interaction.edit_original_response(content=f"Mirrored respective to the {respective.value} half!", attachments=[__mirror(formatted_image, image.filename, respective)])
     except:
         await interaction.edit_original_response(content='failed')
 
