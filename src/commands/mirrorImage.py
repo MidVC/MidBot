@@ -2,6 +2,7 @@ from discord import Interaction, Attachment, File
 from discord.ext.commands import Context
 from ..bot import bot
 import io
+import re
 from enum import Enum
 from PIL import Image, ImageSequence
 # import requests
@@ -43,7 +44,10 @@ def __mirrorFrame(image: Image.Image, dir: FlipDir) -> Image.Image:
 
 def __mirror(image: Image.Image, name: str, dir: FlipDir) -> File:
     width, height = image.size
-    new_image = Image.new('RGBA', (width-1, height-1))
+    if re.match(r".*\.png$", name):
+        new_image = Image.new('RGBA', (width-1, height-1))
+    else:
+        new_image = Image.new('RGB', (width-1, height-1))
     if dir == FlipDir.LEFT:
         half = image.crop((0, 0, width//2, height))
         mirrored_half = half.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
@@ -111,7 +115,8 @@ async def mirror_image(interaction: Interaction, image: Attachment, respective: 
             await interaction.edit_original_response(content=f"Mirrored respective to the {respective.value} half!", attachments=[__mirrorGif(formatted_image, image.filename, respective)])
         else:
             await interaction.edit_original_response(content=f"Mirrored respective to the {respective.value} half!", attachments=[__mirror(formatted_image, image.filename, respective)])
-    except:
+    except Exception as e:
+        print('Mirroring image failed! Reason: ', e)
         await interaction.edit_original_response(content='failed')
 
     
