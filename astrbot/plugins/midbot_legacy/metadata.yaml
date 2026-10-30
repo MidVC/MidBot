@@ -1,0 +1,4 @@
+name: midbot_legacy
+desc: 把旧 MidBot（discord.py）的指令和彩蛋搬过来：ping / roll / mirror / ciallo / >rs / 每日 Time
+author: MidC
+version: 1.0.0
