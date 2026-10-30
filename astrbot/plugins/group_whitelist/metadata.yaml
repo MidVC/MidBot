@@ -1,0 +1,4 @@
+name: group_whitelist
+desc: 群聊白名单——只有 whitelist.json 里的群才会说话，空列表 = 所有群都不说话
+author: MidC
+version: 1.0.0
