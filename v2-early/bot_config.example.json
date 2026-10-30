@@ -1,0 +1,23 @@
+{
+  "onebot": {
+    "http": "http://127.0.0.1:3000",
+    "ws": "ws://127.0.0.1:3001",
+    "token": "REPLACE_ME",
+    "timeout": 40
+  },
+  "self_id": 0,
+  "api_key": "sk-REPLACE_ME",
+  "api_base": "https://api.deepseek.com",
+  "model": "deepseek-chat",
+  "owners": [],
+  "proactive": {
+    "enabled": false,
+    "target": 0
+  },
+  "group": {
+    "enabled": true,
+    "names": ["小鲸鱼"],
+    "keywords": ["小鲸鱼"]
+  },
+  "voice": {"enabled": false}
+}

@@ -1,0 +1,55 @@
+{
+  "_comment": "片段示例：把这些键合并进 AstrBot 的 data/cmd_config.json（不要整份覆盖）",
+  "dashboard": {
+    "host": "127.0.0.1",
+    "port": 6185
+  },
+  "timezone": "America/Toronto",
+  "provider": [
+    {
+      "id": "deepseek",
+      "provider": "openai",
+      "type": "openai_chat_completion",
+      "provider_type": "chat_completion",
+      "enable": true,
+      "key": ["sk-REPLACE_ME"],
+      "api_base": "https://api.deepseek.com/v1",
+      "model": "deepseek-chat",
+      "timeout": 120,
+      "proxy": "",
+      "custom_headers": {}
+    }
+  ],
+  "platform": [
+    {
+      "id": "qq",
+      "type": "aiocqhttp",
+      "enable": true,
+      "ws_reverse_host": "127.0.0.1",
+      "ws_reverse_port": 6199,
+      "ws_reverse_token": "REPLACE_ME"
+    },
+    {
+      "id": "discord",
+      "type": "discord",
+      "enable": true,
+      "discord_token": "REPLACE_ME",
+      "discord_proxy": "",
+      "discord_allow_bot_messages": false
+    }
+  ],
+  "agent_runner": {
+    "runner_type": "local",
+    "config": {
+      "persona": {
+        "persona_id": "xiao-jingyu",
+        "safety_mode": true,
+        "safety_mode_strategy": "system_prompt"
+      }
+    }
+  },
+  "platform_settings": {
+    "enable_id_white_list": true,
+    "id_whitelist": []
+  }
+}
