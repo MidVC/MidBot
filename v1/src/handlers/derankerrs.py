@@ -1,4 +1,4 @@
-derankerIdList = [389238231465459712]
+derankerIdList = []
 
 def handle_deranker_rs(id: int) -> str :
     if id in derankerIdList :

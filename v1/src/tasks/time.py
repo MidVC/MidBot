@@ -5,8 +5,8 @@ from sys import stderr
 from discord.ext import tasks
 
 
-sendTimeUsers = [(848463695998353459, False)]
-sendTimeChannels = [(1194446562919710764, True)]
+sendTimeUsers = []
+sendTimeChannels = []
 
 @tasks.loop(time=time(2, 4))
 async def taskTime(client: Client):

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+midbot/
+
+# 机密 / 本地配置
+.env
+.env.*
+!.env.example
+*.local.json
+config.local.json
+cmd_config.json
+bot_config.json
+onebot11*.json
+wpp-auth.json
+memory.json
+
+# 运行产物
+*.log
+qrcode.png
+data/
+tmp/

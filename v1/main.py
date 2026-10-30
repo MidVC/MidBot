@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-load_dotenv('.env.example')
+load_dotenv()
 
 from src.bot import run_discord_bot
 
