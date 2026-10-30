@@ -22,3 +22,7 @@ memory.json
 qrcode.png
 data/
 tmp/
+
+# 插件本地配置（真名，不入库）
+astrbot/plugins/*/config.json
+astrbot/plugins/*/whitelist.json
