@@ -1,0 +1,4 @@
+name: memlib_bridge
+desc: 共享记忆桥——把 ~/shared-memory 的长期记忆注入系统提示词，并在回复后抽取新事实
+author: MidC
+version: 1.0.0
