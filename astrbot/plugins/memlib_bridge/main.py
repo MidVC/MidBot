@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 import threading
 import urllib.request
@@ -20,9 +21,12 @@ IDENTITIES_PATH = os.path.join(BASE, "identities.json")
 CFG_PATH = os.path.expanduser("~/astrbot/data/cmd_config.json")
 
 DEFAULT_IDENTITIES = {
-    "owner": {"qq": [], "discord": []},
     "owner_address": "爸爸",
+    "default_relation": "stranger",
+    "users": {},
 }
+
+FAMILY_WORDS = ("老爸", "爸爸")
 
 
 def load_identities() -> dict:
@@ -30,12 +34,18 @@ def load_identities() -> dict:
     try:
         with open(IDENTITIES_PATH, encoding="utf-8") as fh:
             user = json.load(fh)
-        if isinstance(user.get("owner"), dict):
-            data["owner"].update(user["owner"])
-        if user.get("owner_address"):
-            data["owner_address"] = str(user["owner_address"])
     except Exception:
-        pass
+        return data
+    for k in ("owner_address", "default_relation"):
+        if user.get(k):
+            data[k] = str(user[k])
+    if isinstance(user.get("users"), dict):
+        data["users"] = {str(k): v for k, v in user["users"].items()}
+    # 兼容旧格式 {"owner": {"qq": [...], "discord": [...]}}
+    if isinstance(user.get("owner"), dict):
+        for plat, ids in user["owner"].items():
+            for i in ids or []:
+                data["users"].setdefault(f"{plat}:{i}", {"name": "MidC", "relation": "owner"})
     return data
 
 
@@ -48,13 +58,44 @@ def platform_key(event: AstrMessageEvent) -> str:
     return name or "unknown"
 
 
-def is_owner(event: AstrMessageEvent, identities: dict) -> bool:
-    ids = identities.get("owner", {}).get(platform_key(event), []) or []
-    return str(event.get_sender_id() or "") in {str(x) for x in ids}
+def resolve(event: AstrMessageEvent, identities: dict):
+    plat = platform_key(event)
+    sid = str(event.get_sender_id() or "")
+    entry = (identities.get("users") or {}).get(f"{plat}:{sid}") or {}
+    rel = str(entry.get("relation") or identities.get("default_relation") or "stranger")
+    name = str(entry.get("name") or event.get_sender_name() or sid)
+    return plat, sid, name, rel, rel == "owner"
+
+
+def scrub_family(text: str, replacement: str = "你") -> str:
+    for w in FAMILY_WORDS:
+        text = text.replace(w, replacement)
+    return text
+
+
+def scrub_contexts(contexts, replacement="你"):
+    """把历史里已经叫出口的「老爸/爸爸」改写掉，避免模型模仿自己。"""
+    changed = 0
+    for m in contexts or []:
+        if m.get("role") != "assistant":
+            continue
+        content = m.get("content")
+        if isinstance(content, str):
+            new = scrub_family(content, replacement)
+            if new != content:
+                m["content"] = new
+                changed += 1
+        elif isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict) and isinstance(part.get("text"), str):
+                    new = scrub_family(part["text"], replacement)
+                    if new != part["text"]:
+                        part["text"] = new
+                        changed += 1
+    return changed
 
 
 def _provider_conf():
-    """返回 (api_key, api_base, model)。兼容 AstrBot 新的 provider_sources 结构。"""
     key = base = model = ""
     try:
         with open(CFG_PATH, encoding="utf-8-sig") as fh:
@@ -103,56 +144,72 @@ class MemlibBridge(Star):
         super().__init__(context)
         self._user_text = {}
         self._guest = {}
+        self._owner = {}
 
     @filter.on_llm_request(priority=-100)
     async def inject(self, event: AstrMessageEvent, req: ProviderRequest):
         self._user_text[event.unified_msg_origin] = event.message_str
         identities = load_identities()
-        plat = platform_key(event)
-        sid = str(event.get_sender_id() or "")
-        name = str(event.get_sender_name() or sid)
-        owner = is_owner(event, identities)
-        self._guest[event.unified_msg_origin] = (not owner)
+        plat, sid, name, rel, owner = resolve(event, identities)
         address = identities.get("owner_address", "爸爸")
+        self._guest[event.unified_msg_origin] = (not owner)
+        self._owner[event.unified_msg_origin] = owner
 
         if owner:
-            who = (
-                f"【当前对话者】是{address}本人（{plat}，ID {sid}）。"
+            rule = (
+                f"【当前说话的人】{name}（{plat}:{sid}），关系：{address}本人。"
                 f"可以自然地叫{address}。"
             )
         else:
-            who = (
-                f"【当前对话者】是「{name}」（{plat}，ID {sid}），不是{address}。\n"
-                f"这条优先于上面所有人格设定：绝对不要用「{address}」「老爸」或任何亲属称呼叫他，"
-                "也不要撒娇、不要说只有父女之间才说的话。就当普通朋友，称呼用「你」或者对方的名字。"
+            rule = (
+                f"【当前说话的人】{name}（{plat}:{sid}），关系：{rel}，**不是**{address}。\n"
+                f"绝对不要用「{address}」「老爸」称呼他，也不要撒娇或说父女之间的话；"
+                "就当普通朋友，用「你」或对方名字称呼。"
             )
 
-        # 身份说明放在最后，优先级最高
-        req.system_prompt = (req.system_prompt or "").rstrip() + "\n\n" + who
-        logger.info("[memlib_bridge] %s %s -> %s", plat, sid, "owner" if owner else "guest")
+        # 1) 系统提示末尾（优先级最高）
+        req.system_prompt = (req.system_prompt or "").rstrip() + "\n\n" + rule
 
-        if not memlib:
-            return
-        try:
-            block = memlib.render(view="owner" if owner else "public", limit=40, width=2000)
-            if block and owner:
-                req.system_prompt += (
-                    "\n\n【你记得的事】\n" + block
-                    + "\n（这些是你长期记住的，自然地用，别一口气全说出来。）"
-                )
-        except Exception:
-            logger.exception("[memlib_bridge] 注入记忆失败")
+        # 2) 当前这轮用户消息前面贴一个紧凑标签（模型对最近输入最敏感）
+        tag = (
+            f"[speaker] {name} | {plat}:{sid} | relation={rel}"
+            + ("" if owner else " | never call this person 爸爸/老爸")
+        )
+        req.prompt = tag + "\n" + (req.prompt or "")
+
+        # 3) 历史里已经叫错的，改写掉，别让它继续模仿自己
+        if not owner:
+            fixed = scrub_contexts(req.contexts, "你")
+            if fixed:
+                logger.info("[memlib_bridge] scrubbed %s family references in history", fixed)
+
+        logger.info("[memlib_bridge] %s:%s (%s) -> %s", plat, sid, name,
+                    "owner" if owner else "guest")
+
+        if memlib and owner:
+            try:
+                block = memlib.render(view="owner", limit=40, width=2000)
+                if block:
+                    req.system_prompt += (
+                        "\n\n【你记得的事】\n" + block
+                        + "\n（这些是你长期记住的，自然地用，别一口气全说出来。）"
+                    )
+            except Exception:
+                logger.exception("[memlib_bridge] 注入记忆失败")
 
     @filter.on_llm_response()
     async def collect(self, event: AstrMessageEvent, resp: LLMResponse):
+        reply = (getattr(resp, "completion_text", "") or "").strip()
+        if reply and self._guest.pop(event.unified_msg_origin, False):
+            cleaned = scrub_family(reply, "你")
+            if cleaned != reply:
+                logger.info("[memlib_bridge] output scrubbed: %s", cleaned[:80])
+                resp.completion_text = cleaned
         if not memlib:
             return
-        reply = (getattr(resp, "completion_text", "") or "").strip()
-        if self._guest.pop(event.unified_msg_origin, False) and reply:
-            for word in ("老爸", "爸爸"):
-                reply = reply.replace(word, "你")
-            if getattr(resp, "completion_text", None):
-                resp.completion_text = reply
+        if not self._owner.pop(event.unified_msg_origin, False):
+            self._user_text.pop(event.unified_msg_origin, None)
+            return
         user = self._user_text.pop(event.unified_msg_origin, "")
         if not reply or not user or len(user) + len(reply) < 12:
             return

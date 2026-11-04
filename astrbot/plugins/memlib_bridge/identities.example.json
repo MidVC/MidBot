@@ -1,7 +1,9 @@
 {
-  "owner": {
-    "qq": ["123456789"],
-    "discord": ["000000000000000000"]
-  },
-  "owner_address": "爸爸"
+  "owner_address": "爸爸",
+  "default_relation": "stranger",
+  "users": {
+    "qq:123456789": {"name": "Owner", "relation": "owner"},
+    "discord:000000000000000000": {"name": "Owner", "relation": "owner"},
+    "discord:111111111111111111": {"name": "Friend", "relation": "friend"}
+  }
 }
